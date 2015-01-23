@@ -1,0 +1,7 @@
+body,html{height:100%;font-family: Microsoft YaHei;color:#333;}
+
+.dropdown-menu{
+	max-height: 400px;
+	overflow-y:auto; 
+}
+.sit{margin: 0 5px;}
