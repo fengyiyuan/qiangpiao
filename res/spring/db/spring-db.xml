@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation="    
+    http://www.springframework.org/schema/beans      
+    http://www.springframework.org/schema/beans/spring-beans.xsd      
+    http://www.springframework.org/schema/context      
+    http://www.springframework.org/schema/context/spring-context.xsd     
+    http://www.springframework.org/schema/aop     
+    http://www.springframework.org/schema/aop/spring-aop.xsd     
+    http://www.springframework.org/schema/tx     
+    http://www.springframework.org/schema/tx/spring-tx.xsd">
+    
+  <bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource" destroy-method="close">
+		<property name="driverClass" value="${database.driver}"></property>
+        <property name="jdbcUrl" value="${database.url}"></property>
+        <property name="user" value="${database.username}"></property>
+        <property name="password" value="${database.password}"></property>
+        <property name="maxPoolSize" value="${database.maxPoolSize}"></property>
+        <property name="minPoolSize" value="${database.minPoolSize}"></property>
+        <property name="initialPoolSize" value="${database.initialPoolSize}"></property>
+        <property name="preferredTestQuery" value="${database.poolPingQuery}"></property>
+        <property name="acquireIncrement" value="${database.acquireIncrement}"></property>
+        <property name="idleConnectionTestPeriod" value="${database.idleConnectionTestPeriod}"></property>
+        <property name="maxStatements" value="${database.maxStatements}"></property>
+        <property name="maxStatementsPerConnection" value="${database.maxStatementsPerConnection}"></property>
+        <property name="maxIdleTime" value="${database.maxIdleTime}"></property>
+	</bean>
+	
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource" />
+		<property name="configLocation" value="classpath:mybatis/mybatis-config.xml" />
+		<property name="mapperLocations">
+			<list>
+				<value>classpath*:com/feng/dao/mapper/*.xml</value>
+			</list>
+		</property>
+	</bean>
+	
+	<bean id="baseDao" class="com.feng.dao.core.BaseDao">
+		<property name="sqlSessionFactory" ref="sqlSessionFactory"></property>
+	</bean>
+</beans>

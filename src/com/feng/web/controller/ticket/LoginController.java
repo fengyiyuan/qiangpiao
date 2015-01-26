@@ -38,11 +38,10 @@ public class LoginController {
     
     @ResponseBody
     @RequestMapping("/getCodeImage")
-    public String getImage(HttpServletRequest request) throws Exception{
+    public String getImage() throws Exception{
         HttpDO httpDO = HttpUtils.doGet(PropUtils.getProp("ticket.url") + PropUtils.getProp("ticket.url.loginCode"));
-        String path = request.getRealPath("/").toString();
         String filePath = "/temp/"+ UUID.randomUUID().toString().replace("-", "") + ".jpg";
-        FileCopyUtils.copy(httpDO.getBaos().toByteArray(), new File(path + filePath));
+        FileCopyUtils.copy(httpDO.getBaos().toByteArray(), new File(System.getProperty("webRoot") + filePath));
         return filePath;
     }
     
@@ -59,8 +58,7 @@ public class LoginController {
     @ResponseBody
     @RequestMapping("/login")
     public String login(String username,String password,String code,HttpServletRequest request) throws Exception{
-        String webRoot = request.getRealPath("/");
-        ticketService.login(username,password,code,webRoot);
+        ticketService.login(username,password,code);
         return JSONObject.toJSONString(MvHelper.ajaxSuccess());
     }
 }

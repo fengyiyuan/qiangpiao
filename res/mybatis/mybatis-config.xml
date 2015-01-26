@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration
+    PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-config.dtd">
+
+<configuration>
+
+<!--配置数据库方言-->
+   <properties>    
+<!--       <property name="dialect" value="com.baidu.erp.supplier.core.mybatis.OracleDialect"/>    -->
+           <property name="dialect" value="com.baidu.erp.supplier.core.mybatis.MySQLDialect"/>    
+   </properties>  
+   
+	<settings>
+		<!-- changes from the defaults -->
+		<!-- <setting name="cacheEnabled" value="true"/>  -->
+		<setting name="lazyLoadingEnabled" value="false" />
+		<setting name="defaultStatementTimeout" value="1"/>
+	</settings>
+	
+</configuration>

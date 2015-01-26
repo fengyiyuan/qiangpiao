@@ -21,6 +21,9 @@ public class HttpTicketDO {
     private Boolean isLogin = false;
     private String userName;
     
+    private String dynamicKey;
+    private String dynamicVal;
+    
     private Map<String,String> sendHeaders = new HashMap<String,String>();
     public String getBIGipServerotn() {
         return BIGipServerotn;
@@ -45,6 +48,18 @@ public class HttpTicketDO {
     }
     public void setUserName(String userName) {
         this.userName = userName;
+    }
+    public String getDynamicKey() {
+        return dynamicKey;
+    }
+    public void setDynamicKey(String dynamicKey) {
+        this.dynamicKey = dynamicKey;
+    }
+    public String getDynamicVal() {
+        return dynamicVal;
+    }
+    public void setDynamicVal(String dynamicVal) {
+        this.dynamicVal = dynamicVal;
     }
     public HttpTicketDO(){}
   

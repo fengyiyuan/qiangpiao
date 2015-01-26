@@ -4,13 +4,18 @@
 package com.feng.service;
 
 import java.io.File;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.FileCopyUtils;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.feng.dao.TicketDao;
 import com.feng.domain.HttpDO;
 import com.feng.domain.HttpTicketDO;
 import com.feng.domain.QueryTicketDO;
@@ -23,10 +28,14 @@ import com.feng.utils.SessionUtils;
  * @author v_wuyunfeng
  *
  */
+@Transactional
 @Service("ticketService")
 public class TicketService {
     private Logger log = Logger.getLogger(TicketService.class); 
-
+    
+    @Autowired
+    private TicketDao ticketDao;
+    
     /**
      * @param username
      * @param password
@@ -34,23 +43,14 @@ public class TicketService {
      * @param webRoot 
      * @throws Exception 
      */
-    public void login(String username, String password, String code, String webRoot) throws Exception {
+    public void login(String username, String password, String code) throws Exception {
         HttpDO httpDO = null;
         String loginUrl = PropUtils.getProp("ticket.url") + PropUtils.getProp("ticket.url.loginInit");
-        httpDO = HttpUtils.doGet(loginUrl);
-        // 读取服务器的响应内容并显示 
-       String str = httpDO.getResponseStr();
-       int mid = str.indexOf("dynamicJs");
-       String dynamicJsUrl = str.substring(str.substring(0, mid).lastIndexOf("\"") + 1,str.substring(mid).indexOf("\"")+mid);
-       httpDO = HttpUtils.doGet(PropUtils.getProp("ticket.url") + dynamicJsUrl);
-       String dynamicJs = httpDO.getResponseStr();
-       String key = dynamicJs.substring(dynamicJs.indexOf("gc(){var key='") + "gc(){var key='".length(), dynamicJs.indexOf("'",dynamicJs.indexOf("gc(){var key='") + "gc(){var key='".length()));
-       String jsStr = new String(FileCopyUtils.copyToByteArray(new File(webRoot+ "/ticketFiles/12306.js")));
-       String value = CommonUtils.runSecretKeyValueMethod(key, jsStr);
+        parseDynamicJS(loginUrl);
        String params = PropUtils.getProp("ticket.login.username") + "=" + username + "&" +
                        PropUtils.getProp("ticket.login.password") + "=" + password + "&" +
                        PropUtils.getProp("ticket.login.code") + "=" + code + "&" +
-                       key + "=" + value + "&" +
+                       SessionUtils.getHttpTicket().getDynamicKey() + "=" + SessionUtils.getHttpTicket().getDynamicVal() + "&" +
                       "myversion=undefined&randCode_validate=";
        loginUrl = PropUtils.getProp("ticket.url") + PropUtils.getProp("ticket.url.login");
        httpDO = HttpUtils.doPost(loginUrl, params);
@@ -68,6 +68,7 @@ public class TicketService {
        log.info(httpDO.getHeaders());
        SessionUtils.getHttpTicket().setIsLogin(true);
        SessionUtils.getHttpTicket().setUserName(username);
+       ticketDao.userLogin(username, password);
     }
 
     /**
@@ -84,5 +85,60 @@ public class TicketService {
         JSONObject jsonResult = JSONObject.parseObject(httpDO.getResponseStr());
         return (JSONArray)jsonResult.get("data");
     }
+
+    /**
+     * @return
+     */
+    public JSONArray queryPassengers() {
+        String passUrl = PropUtils.getProp("ticket.url") + PropUtils.getProp("ticket.query.getPassengers");
+        HttpDO httpDO = HttpUtils.doGet(passUrl);
+        JSONObject retJO = JSONObject.parseObject(httpDO.getResponseStr());
+        return retJO.getJSONObject("data").getJSONArray("normal_passengers");
+    }
+
+    /**
+     * 
+     */
+    public void initLeftTicket() {
+        String initLTUrl = PropUtils.getProp("ticket.url") + PropUtils.getProp("ticket.query.initQuery");
+        parseDynamicJS(initLTUrl);
+    }
     
+    private void parseDynamicJS(String url){
+        HttpDO httpDO = HttpUtils.doGet(url);
+        String regEx = "\"(/otn/dynamicJs/.*?)\"";
+        Pattern p = Pattern.compile(regEx);
+        Matcher m = p.matcher(httpDO.getResponseStr());
+        String dynamicUrl = null; 
+        if(m.find()){
+            dynamicUrl = m.group(1);
+        }
+        httpDO = HttpUtils.doGet(PropUtils.getProp("ticket.url") + dynamicUrl);
+        regEx = "gc\\(\\)\\{var\\skey='(.*?)'";
+        p = Pattern.compile(regEx);
+        m = p.matcher(httpDO.getResponseStr());
+        String key= null;
+        if(m.find()){
+           key = m.group(1);
+        }
+        if(key != null){
+            try{
+            String jsStr = new String(FileCopyUtils.copyToByteArray(new File(System.getProperty("webRoot") + "/ticketFiles/12306.js")));
+            String value = CommonUtils.runSecretKeyValueMethod(key, jsStr);
+            SessionUtils.getHttpTicket().setDynamicKey(key);
+            SessionUtils.getHttpTicket().setDynamicVal(value);
+            }catch(Exception e){
+                e.printStackTrace();
+            }
+        }
+    }
+    
+    public static void main(String[] args) {
+        String regEx = "/otn/dynamicJs/(.*?)\"";
+        Pattern p = Pattern.compile(regEx);
+        Matcher m = p.matcher("/otn/dynamicJs/abcdefg\"");
+        if(m.find()){
+            System.out.println(m.group(1));
+        }
+    }
 }

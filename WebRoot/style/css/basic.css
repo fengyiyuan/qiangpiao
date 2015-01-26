@@ -1,7 +1,9 @@
 body,html{height:100%;font-family: Microsoft YaHei;color:#333;}
-
+body,html,ul,li{margin: 0;padding: 0;}
+ul li {display: inline;list-style-type: none;}
 .dropdown-menu{
 	max-height: 400px;
 	overflow-y:auto; 
 }
 .sit{margin: 0 5px;}
+.passengers li{margin-right: 30px;}

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.feng.dao.mapper.TicketMapper">
+	
+	<resultMap type="com.feng.domain.UserDO" id="userDO">
+		 <id column="id" property="id" />
+		 <id column="username" property="username" />
+		 <id column="password" property="password" />
+		 <id column="last_login" property="lastLogin" />
+	</resultMap>
+
+	<!-- 查询列表 -->
+	<select id="getUserByUserName" parameterType="java.lang.String" resultMap="userDO">
+		select id,username,password,last_login from ticket_user where username = #{username}
+	</select>
+	
+	<insert id="insertUser" parameterType="com.feng.domain.UserDO">
+		insert into ticket_user (username,password,last_login) values (#{username},#{password},#{lastLogin})
+	</insert>
+	<insert id="updateUser" parameterType="com.feng.domain.UserDO">
+		update ticket_user set username = #{username} , password = #{password}, last_login = #{lastLogin} where id = #{id}
+	</insert>
+</mapper>

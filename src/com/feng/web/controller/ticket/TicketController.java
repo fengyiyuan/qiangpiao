@@ -35,6 +35,26 @@ public class TicketController {
         JSONArray jsonArray = ticketService.queryTicket(queryTicketDO);
         return JSONObject.toJSONString(MvHelper.ajaxSuccess(jsonArray));
     }
+    @ResponseBody
+    @RequestMapping("/queryPassengers")
+    public String queryPassengers() throws Exception{
+        JSONArray jsonArray = ticketService.queryPassengers();
+        return JSONObject.toJSONString(MvHelper.ajaxSuccess(jsonArray));
+    }
+    
+    @ResponseBody
+    @RequestMapping("/initLeftTicket")
+    public String initLeftTicket() throws Exception{
+        ticketService.initLeftTicket();
+        return JSONObject.toJSONString(MvHelper.ajaxSuccess());
+    }
+    
+    @ResponseBody
+    @RequestMapping("/submitOrderRequest")
+    public String submitOrder(String secretStr) throws Exception{
+        //ticketService.submitOrder();
+        return JSONObject.toJSONString(MvHelper.ajaxSuccess());
+    }
     
     
 }
