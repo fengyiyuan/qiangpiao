@@ -8,16 +8,37 @@
 		 <id column="password" property="password" />
 		 <id column="last_login" property="lastLogin" />
 	</resultMap>
+	<resultMap type="com.feng.domain.PassengerDO" id="passengerDO">
+		 <id column="id" property="id" />
+		 <id column="name" property="name" />
+		 <id column="id_type" property="idType" />
+		 <id column="id_no" property="idNo" />
+		 <id column="phone" property="phone" />
+		 <id column="type" property="type" />
+	</resultMap>
 
 	<!-- 查询列表 -->
 	<select id="getUserByUserName" parameterType="java.lang.String" resultMap="userDO">
 		select id,username,password,last_login from ticket_user where username = #{username}
 	</select>
 	
-	<insert id="insertUser" parameterType="com.feng.domain.UserDO">
+	
+	<insert id="insertUser" useGeneratedKeys="true" keyProperty="id" parameterType="com.feng.domain.UserDO">
 		insert into ticket_user (username,password,last_login) values (#{username},#{password},#{lastLogin})
 	</insert>
 	<insert id="updateUser" parameterType="com.feng.domain.UserDO">
 		update ticket_user set username = #{username} , password = #{password}, last_login = #{lastLogin} where id = #{id}
 	</insert>
+	<insert id="addPass" parameterType="com.alibaba.fastjson.JSONObject">
+		insert into ticket_passenger (code,name,sex_code,born_date,country_code,id_type,id_no,phone,email,user_id,type)
+							  values (#{code},#{passenger_name},#{sex_code},#{born_date},#{country_code},#{passenger_id_type_code},#{passenger_id_no},#{phone_no},#{email},#{user_id},#{passenger_type})
+	</insert>
+	
+	<delete id="deletePassByUserId" parameterType="java.lang.Integer">
+		delete from ticket_passenger where user_id = #{id}
+	</delete>
+	
+	<select id="queryPassByCodes" resultMap="passengerDO">
+		select id,name,id_type,id_no,phone,type from ticket_passenger where user_id = #{userId} and code in ( ${codes} )
+	</select>
 </mapper>

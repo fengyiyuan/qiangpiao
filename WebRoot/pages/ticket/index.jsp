@@ -58,8 +58,7 @@
 			var passArr = JSON.parse(data).result;
 			for(var i = 0,len = passArr.length;i < len; i++){
 				var pass = passArr[i];
-				var $li = $('<li><input type="checkbox"/>'+pass.passenger_name+'</li>');
-				$li.data("pass",pass);
+				var $li = $('<li><input type="checkbox" name="pass" code="'+pass.code+'"/>'+pass.passenger_name+'</li>');
 				$("#passengers").append($li);
 			}
 		});
@@ -120,14 +119,51 @@
 				}
 				$("#sits").find("tbody").html(trs);
 				$("#sits").find(".sit").click(function(){
-					var params = "type="+$(this).attr("typeVal")+"&secretStr=" + $(this).closest("tr").attr("secretStr");
-					$.post("${ctx}/ticket/submitOrderRequest?random=" + new Date().getTime(),params,function(data){
-						alert(data);
+					var codeArr = new Array;
+					$("input[name='pass']:checked").each(function(){
+						codeArr.push($(this).attr("code"));
 					});
+					if(codeArr.length == 0){
+						alert("请先选择乘客");
+						return;
+					}
+					var params = "codes="+codeArr.join(",")+"&type="+$(this).attr("typeVal")+"&secretStr=" + $(this).closest("tr").attr("secretStr");
+					$.post("${ctx}/ticket/submitOrder?random=" + new Date().getTime(),params,function(data){
+							$('#myModal').modal('show');
+						 var ret = JSON.parse(data).result;
+						if(ret.status){
+							$('#myModal').modal('show');
+						} 
+					}); 
 				});
 			});
 		});
+		
+		$('#myModal').on('show.bs.modal', function (e) {
+			reloadImg();
+		});
+		
+		$('#orderCode').keyup(function(){
+			if(this.value.length == 4){
+				$.post("${ctx}/login/validCode",{code:this.value},function(data){
+						if(JSON.parse(data).data.result == 1){
+							$.post("${ctx}/ticket/checkOrderInfo",{code:$('#orderCode').val()},function(data){
+								alert(data);
+							});
+						}else{
+							reloadImg();
+							$('#orderCode').val('');
+						}
+					});
+			}
+		});
 	});
+	
+	function reloadImg(){
+		$.get("${ctx}/ticket/getCodeImage",function(data){
+			$("#orderCodeImg").attr("src","${ctx}/"+data);
+		});
+	}
 </script>
 </head>
 
@@ -189,5 +225,35 @@
 			</tbody>
 		</table>
 	</div>
+	
+<!-- Modal -->
+<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="myModalLabel">请输入验证码</h4>
+      </div>
+      <div class="modal-body">
+      <form class="form-horizontal" role="form">
+     	 <div class="form-group">
+				<label for="orderCode" class="col-sm-2 control-label">验证码</label>
+				<div class="col-sm-5">
+					<input type="text" class="form-control" id="orderCode" name="orderCode"
+						placeholder="请输入验证码">
+				</div>
+				<div class="col-sm-5">
+					<img src="" class="img-responsive" id="orderCodeImg" alt="验证码">
+				</div>
+			</div>
+		</form>	
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+        <button type="button" class="btn btn-primary">确定</button>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>

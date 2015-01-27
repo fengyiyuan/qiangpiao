@@ -4,6 +4,10 @@
 package com.feng.service;
 
 import java.io.File;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -18,7 +22,9 @@ import com.alibaba.fastjson.JSONObject;
 import com.feng.dao.TicketDao;
 import com.feng.domain.HttpDO;
 import com.feng.domain.HttpTicketDO;
+import com.feng.domain.PassengerDO;
 import com.feng.domain.QueryTicketDO;
+import com.feng.domain.UserDO;
 import com.feng.utils.CommonUtils;
 import com.feng.utils.HttpUtils;
 import com.feng.utils.PropUtils;
@@ -68,19 +74,25 @@ public class TicketService {
        log.info(httpDO.getHeaders());
        SessionUtils.getHttpTicket().setIsLogin(true);
        SessionUtils.getHttpTicket().setUserName(username);
-       ticketDao.userLogin(username, password);
+       UserDO userDO = ticketDao.userLogin(username, password);
+       JSONArray pass = queryPassengers();
+       ticketDao.updatePassengers(pass,userDO);
+       SessionUtils.getHttpTicket().setUserDo(userDO);
+       
     }
 
     /**
      * @param queryTicketDO
      */
     public JSONArray queryTicket(QueryTicketDO queryTicketDO) {
+        SessionUtils.getHttpTicket().setQueryTicketDO(queryTicketDO);
+        
         String queryTicketUrl = PropUtils.getProp("ticket.url") + PropUtils.getProp("ticket.query.queryTicketLog");
-        HttpDO httpDO = HttpUtils.doGet(queryTicketUrl,queryTicketDO.getParams(),queryTicketDO.getQueryTicketCookies());
+        HttpDO httpDO = HttpUtils.doGet(queryTicketUrl,queryTicketDO.getParams());
         System.out.println(httpDO.getResponseStr());
         
         queryTicketUrl = PropUtils.getProp("ticket.url") + PropUtils.getProp("ticket.query.queryTicket");
-        httpDO = HttpUtils.doGet(queryTicketUrl,queryTicketDO.getParams(),queryTicketDO.getQueryTicketCookies());
+        httpDO = HttpUtils.doGet(queryTicketUrl,queryTicketDO.getParams());
         System.out.println(httpDO.getResponseStr());
         JSONObject jsonResult = JSONObject.parseObject(httpDO.getResponseStr());
         return (JSONArray)jsonResult.get("data");
@@ -104,7 +116,7 @@ public class TicketService {
         parseDynamicJS(initLTUrl);
     }
     
-    private void parseDynamicJS(String url){
+    private String parseDynamicJS(String url){
         HttpDO httpDO = HttpUtils.doGet(url);
         String regEx = "\"(/otn/dynamicJs/.*?)\"";
         Pattern p = Pattern.compile(regEx);
@@ -131,6 +143,7 @@ public class TicketService {
                 e.printStackTrace();
             }
         }
+        return httpDO.getResponseStr();
     }
     
     public static void main(String[] args) {
@@ -140,5 +153,81 @@ public class TicketService {
         if(m.find()){
             System.out.println(m.group(1));
         }
+    }
+
+    /**
+     * @param codes
+     * @param type
+     * @param secretStr
+     * @throws Exception 
+     */
+    public String submitOrder(String codes, String seatType, String secretStr) throws Exception {
+        HttpTicketDO httpTicket = SessionUtils.getHttpTicket();
+        QueryTicketDO queryTicketDO = httpTicket.getQueryTicketDO();
+        String params = httpTicket.getDynamicKey() + "=" + httpTicket.getDynamicVal() +
+                        "&myversion=undefined" +
+                        "&secretStr=" + URLEncoder.encode(secretStr,"utf-8") +
+                        "&train_date=" + queryTicketDO.getTrainDate() + 
+                        "&back_train_date=" + queryTicketDO.getTrainDate() +
+                        "&tour_flag=dc" +
+                        "&purpose_codes=" + queryTicketDO.getPurposeCodes() + 
+                        "&query_from_station_name=" + queryTicketDO.getFromStationStr() +
+                        "&query_to_station_name=" + queryTicketDO.getToStationStr() +
+                        "&undefined";
+        String url = PropUtils.getProp("ticket.url") + PropUtils.getProp("ticket.login.checkUser");
+        HttpDO httpDO = HttpUtils.doPost(url, "_json_att=");
+        System.out.println(httpDO.getResponseStr());
+        url = PropUtils.getProp("ticket.url") + PropUtils.getProp("ticket.submit.submitOrderRequest");
+        httpDO = HttpUtils.doPost(url, params);
+        log.info(httpDO.getResponseStr());
+        
+        url = PropUtils.getProp("ticket.url") + PropUtils.getProp("ticket.submit.initDc");
+        String initDcStr = parseDynamicJS(url);
+        String regEx = "globalRepeatSubmitToken\\s=\\s'(.*?)'";
+        Pattern p = Pattern.compile(regEx);
+        Matcher m = p.matcher(initDcStr);
+        String globalRepeatSubmitToken = null;
+        if(m.find()){
+            globalRepeatSubmitToken = m.group(1);
+        }
+        httpTicket.setGlobalRepeatSubmitToken(globalRepeatSubmitToken);
+        
+        regEx = "key_check_isChange':'(.*?)'";
+        p = Pattern.compile(regEx);
+        m = p.matcher(initDcStr);
+        String key_check_isChange = null;
+        if(m.find()){
+            key_check_isChange = m.group(1);
+        }
+        httpTicket.setKeyCheckIsChange(key_check_isChange);
+        
+        List<PassengerDO> list = ticketDao.queryPassgersByCodes(codes,httpTicket.getUserDo().getId());
+        for (PassengerDO passengerDO : list) {
+            passengerDO.setSeatType(seatType);
+        }
+        String oldPassengerStr = getOldPassengerStr(list);
+        String passengerTicketStr = getPassengerTicketStr(list);
+        httpTicket.setOldPassengerStr(oldPassengerStr);
+        httpTicket.setPassengerTicketStr(passengerTicketStr);
+        return httpDO.getResponseStr();
+    }
+    
+    private static String getOldPassengerStr(List<PassengerDO> passList) {
+          String oldStrs = "";
+             for (int i = 0; i < passList.size(); i++) {
+                String oldStr = passList.get(i).getName() + "," + passList.get(i).getIdType() + "," + passList.get(i).getIdNo() + "," + passList.get(i).getType();
+                 oldStrs += oldStr + "_";
+             }
+             return oldStrs;
+         }
+     private static String getPassengerTicketStr(List<PassengerDO> passList) {
+        String oldStrs = "";
+        for (int i = 0; i < passList.size(); i++) {
+            String oldStr =  passList.get(i).getSeatType();
+           String bR = oldStr + ",0," + passList.get(i).getTicketType() + "," + passList.get(i).getName() + "," + passList.get(i).getIdType() + "," + passList.get(i).getIdNo() + ","
+            + (passList.get(i).getPhone() == null ? "" : passList.get(i).getPhone()) + ",N";
+            oldStrs += bR + "_";
+        }
+        return oldStrs.substring(0, oldStrs.length() - 1);
     }
 }

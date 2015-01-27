@@ -3,16 +3,24 @@
  */
 package com.feng.web.controller.ticket;
 
+import java.io.File;
+import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.FileCopyUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.feng.core.springMVC.MvHelper;
+import com.feng.domain.HttpDO;
 import com.feng.domain.QueryTicketDO;
 import com.feng.service.TicketService;
+import com.feng.utils.HttpUtils;
+import com.feng.utils.PropUtils;
+import com.feng.utils.SessionUtils;
 
 /**
  * @author v_wuyunfeng
@@ -50,11 +58,36 @@ public class TicketController {
     }
     
     @ResponseBody
-    @RequestMapping("/submitOrderRequest")
-    public String submitOrder(String secretStr) throws Exception{
-        //ticketService.submitOrder();
-        return JSONObject.toJSONString(MvHelper.ajaxSuccess());
+    @RequestMapping("/submitOrder")
+    public String submitOrder(String codes,String type,String secretStr) throws Exception{
+        String submitOrder = ticketService.submitOrder(codes,type,secretStr);
+        return JSONObject.toJSONString(MvHelper.ajaxSuccess(JSONObject.parse(submitOrder)));
     }
     
+    @ResponseBody
+    @RequestMapping("/getCodeImage")
+    public String getImage() throws Exception{
+        HttpDO httpDO = HttpUtils.doGet(PropUtils.getProp("ticket.url") + PropUtils.getProp("ticket.submit.code"));
+        String filePath = "/temp/"+ UUID.randomUUID().toString().replace("-", "") + ".jpg";
+        FileCopyUtils.copy(httpDO.getBaos().toByteArray(), new File(System.getProperty("webRoot") + filePath));
+        return filePath;
+    }
+    
+    @ResponseBody
+    @RequestMapping("/validCode")
+    public String getImage(String code) throws Exception{
+        String checkCodeUrl = PropUtils.getProp("ticket.url") + PropUtils.getProp("ticket.url.checkCode");
+        String params = "randCode="+code+"&rand=randp&_json_att=&REPEAT_SUBMIT_TOKEN=" + SessionUtils.getHttpTicket().getGlobalRepeatSubmitToken();
+        HttpDO httpDO = HttpUtils.doPost(checkCodeUrl, params);
+        return httpDO.getResponseStr();
+    }
+    @ResponseBody
+    @RequestMapping("/checkOrderInfo")
+    public String checkOrderInfo(String code) throws Exception{
+        String checkCodeUrl = PropUtils.getProp("ticket.url") + PropUtils.getProp("ticket.url.checkCode");
+        String params = "randCode="+code+"&rand=randp&_json_att=&REPEAT_SUBMIT_TOKEN=" + SessionUtils.getHttpTicket().getGlobalRepeatSubmitToken();
+        HttpDO httpDO = HttpUtils.doPost(checkCodeUrl, params);
+        return httpDO.getResponseStr();
+    }
     
 }

@@ -32,6 +32,9 @@ public class HttpUtils {
        Map<String, String> sendHeaders = httpTicket.getSendHeaders();
        return doHttp(url, "post", sendHeaders, params);
    }
+   public static HttpDO doPost(String url,String params,Map<String,String> headers){
+       return doHttp(url, "post", headers, params);
+   }
    
    public static HttpDO doGet(String url,String params,String cookies){
        HttpTicketDO httpTicket = SessionUtils.getHttpTicket();
@@ -70,6 +73,7 @@ public class HttpUtils {
                httpConn.setRequestProperty("Host", "kyfw.12306.cn");
                httpConn.setRequestProperty("Referer", "https://kyfw.12306.cn/otn/leftTicket/init");
                httpConn.setRequestProperty("user-agent", "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:34.0) Gecko/20100101 Firefox/34.0");
+               httpConn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
                if(headers != null){
                    for (Entry<String, String> entry : headers.entrySet()) {
                        httpConn.setRequestProperty(entry.getKey(), entry.getValue());
