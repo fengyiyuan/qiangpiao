@@ -25,6 +25,7 @@
 <script src="${contextPath}/script/station_name.js"></script>
 <script src="${contextPath}/script/FengUtils.js"></script>
 <script type="text/javascript">
+	var currTrain = null;
 	$(function(){
 	 	$(".date").datepicker({
 		 	language:  'zh-CN',
@@ -87,10 +88,10 @@
 					return;
 				}
 			});
+			$("#sits").find("tbody").html('');
 			var params = $("#queryForm").serialize();
 			$.post("${ctx}/ticket/queryTicket",params,function(data){
 				var trainArr = JSON.parse(data).result;
-				var trs = "";
 				for(var i = 0,len = trainArr.length;i < len; i++){
 					var train = trainArr[i];
 					var tr = '<tr secretStr="'+train.secretStr+'">';
@@ -114,10 +115,11 @@
 					}
 					tr += "</tr>";
 					if(flag){
-						trs += tr;
+						var $tr = $(tr);
+						$tr.data("train",train);
+						$("#sits").find("tbody").append($tr);
 					}
 				}
-				$("#sits").find("tbody").html(trs);
 				$("#sits").find(".sit").click(function(){
 					var codeArr = new Array;
 					$("input[name='pass']:checked").each(function(){
@@ -128,31 +130,41 @@
 						return;
 					}
 					var params = "codes="+codeArr.join(",")+"&type="+$(this).attr("typeVal")+"&secretStr=" + $(this).closest("tr").attr("secretStr");
+					var currDom = this;
 					$.post("${ctx}/ticket/submitOrder?random=" + new Date().getTime(),params,function(data){
-							$('#myModal').modal('show');
-						 var ret = JSON.parse(data).result;
+						var retObj = JSON.parse(data);
+				 		if(retObj.type != 0){
+				 			alert(retObj.msg);
+				 			return;
+				 		}
+						 var ret = retObj.result;
 						if(ret.status){
+							currTrain = $(currDom).closest("tr").data("train");
 							$('#myModal').modal('show');
-						} 
+						}else{
+							alert(ret.messages);
+						}
 					}); 
 				});
-			});
+			}); 
 		});
 		
 		$('#myModal').on('show.bs.modal', function (e) {
 			reloadImg();
 		});
 		
-		$('#orderCode').keyup(function(){
+		$('#orderCode').bind('keyup',function(){
+			var currDom = this;
 			if(this.value.length == 4){
-				$.post("${ctx}/login/validCode",{code:this.value},function(data){
+				var sit = currTrain.queryLeftNewDTO;
+				 $.post("${ctx}/ticket/validCode",{code:this.value},function(data){
 						if(JSON.parse(data).data.result == 1){
-							$.post("${ctx}/ticket/checkOrderInfo",{code:$('#orderCode').val()},function(data){
+							var params = 'code=' + currDom.value + '&leftTicketStr=' + sit.yp_info + '&trainLocation=' +sit.location_code;
+							$.post("${ctx}/ticket/checkOrderInfo",params,function(data){
 								alert(data);
 							});
 						}else{
 							reloadImg();
-							$('#orderCode').val('');
 						}
 					});
 			}
@@ -162,6 +174,7 @@
 	function reloadImg(){
 		$.get("${ctx}/ticket/getCodeImage",function(data){
 			$("#orderCodeImg").attr("src","${ctx}/"+data);
+			$('#orderCode').val('');
 		});
 	}
 </script>

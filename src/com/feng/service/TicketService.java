@@ -4,8 +4,8 @@
 package com.feng.service;
 
 import java.io.File;
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -168,7 +168,7 @@ public class TicketService {
                         "&myversion=undefined" +
                         "&secretStr=" + URLEncoder.encode(secretStr,"utf-8") +
                         "&train_date=" + queryTicketDO.getTrainDate() + 
-                        "&back_train_date=" + queryTicketDO.getTrainDate() +
+                        "&back_train_date=" + CommonUtils.getCurrentDateStr() +
                         "&tour_flag=dc" +
                         "&purpose_codes=" + queryTicketDO.getPurposeCodes() + 
                         "&query_from_station_name=" + queryTicketDO.getFromStationStr() +
@@ -180,7 +180,10 @@ public class TicketService {
         url = PropUtils.getProp("ticket.url") + PropUtils.getProp("ticket.submit.submitOrderRequest");
         httpDO = HttpUtils.doPost(url, params);
         log.info(httpDO.getResponseStr());
-        
+        JSONObject retJO = JSONObject.parseObject(httpDO.getResponseStr());
+       if(!retJO.getBoolean("status")){
+          throw new Exception(retJO.getString("messages")); 
+       }
         url = PropUtils.getProp("ticket.url") + PropUtils.getProp("ticket.submit.initDc");
         String initDcStr = parseDynamicJS(url);
         String regEx = "globalRepeatSubmitToken\\s=\\s'(.*?)'";
@@ -229,5 +232,67 @@ public class TicketService {
             oldStrs += bR + "_";
         }
         return oldStrs.substring(0, oldStrs.length() - 1);
+    }
+
+    /**
+     * @param code
+     * @throws Exception 
+     */
+    public String checkOrderInfo(String code,String leftTicketStr,String trainLocation) throws Exception {
+        HttpTicketDO httpTicket = SessionUtils.getHttpTicket();
+        String url = PropUtils.getProp("ticket.url") + PropUtils.getProp("ticket.submit.checkOrderInfo");
+        String params = "cancel_flag=2" + 
+                        "&bed_level_order_num=000000000000000000000000000000" + 
+                        "&passengerTicketStr=" + httpTicket.getPassengerTicketStr() + 
+                        "&oldPassengerStr=" + httpTicket.getOldPassengerStr() +
+                        "&tour_flag=dc" + 
+                        "&randCode=" + code +
+                        "&" + httpTicket.getDynamicKey() + "=" + httpTicket.getDynamicVal() + 
+                        "&_json_att=" + 
+                        "&REPEAT_SUBMIT_TOKEN=" + httpTicket.getGlobalRepeatSubmitToken();
+        Map<String,String> map = new HashMap<String,String>();
+        map.put("Referer", "https://kyfw.12306.cn/otn/confirmPassenger/initDc");
+        HttpDO httpDO = HttpUtils.doPost(url, params);
+        log.info("--------------订单提交验证------------");
+        log.info(httpDO.getResponseStr());
+        log.info("--------------订单提交验证------------");
+        JSONObject checkOrderInfo = JSONObject.parseObject(httpDO.getResponseStr());
+        if(!checkOrderInfo.getJSONObject("data").getBoolean("submitStatus")){
+            throw new Exception(checkOrderInfo.getString("messages"));
+        }
+        url = PropUtils.getProp("ticket.url") + PropUtils.getProp("ticket.submit.confirmSingleForQueue");
+        params = "passengerTicketStr=" + httpTicket.getPassengerTicketStr() + 
+                 "&oldPassengerStr=" + httpTicket.getOldPassengerStr() +
+                 "&randCode=" + code + 
+                 "&purpose_codes=00" +
+                 "&key_check_isChange=" + httpTicket.getKeyCheckIsChange() +
+                 "&leftTicketStr=" + leftTicketStr +
+                 "&train_location=" + trainLocation +
+                 "&dwAll=N&_json_att=" + 
+                 "&REPEAT_SUBMIT_TOKEN=" + httpTicket.getGlobalRepeatSubmitToken(); 
+        httpDO = HttpUtils.doPost(url, params);
+        log.info("----------------提交订单------------------------");
+        log.info(httpDO.getResponseStr());
+        log.info("----------------提交订单------------------------");
+        
+        //查询订单等待时间
+        url = PropUtils.getProp("ticket.url") + PropUtils.getProp("ticket.submit.queryOrderWaitTime");
+        params = "random="+System.currentTimeMillis()+"&tourFlag=dc&_json_att=&REPEAT_SUBMIT_TOKEN=" + httpTicket.getGlobalRepeatSubmitToken();
+        httpDO = HttpUtils.doGet(url, params);
+        log.info("----------------查询等待时间-----------------------");
+        log.info(httpDO.getResponseStr());
+        log.info("----------------查询等待时间-----------------------");
+        JSONObject waitJO = JSONObject.parseObject(httpDO.getResponseStr());
+        String orderId = waitJO.getJSONObject("data").getString("orderId");
+        httpTicket.setOrderId(orderId);
+        
+        //查询订单结果
+        url = PropUtils.getProp("ticket.url") + PropUtils.getProp("ticket.submit.resultOrderForDcQueue");
+        params = "orderSequence_no="+orderId+"&_json_att=&REPEAT_SUBMIT_TOKEN=" + httpTicket.getGlobalRepeatSubmitToken();
+        httpDO = HttpUtils.doPost(url, params);
+        log.info("----------------查询订单结果-----------------------");
+        log.info(httpDO.getResponseStr());
+        log.info("----------------查询订单结果-----------------------");
+        return httpDO.getResponseStr();
     }
 }

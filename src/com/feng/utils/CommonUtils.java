@@ -3,6 +3,10 @@
  */
 package com.feng.utils;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.StringTokenizer;
 
 import javax.script.ScriptEngine;
@@ -60,5 +64,45 @@ public class CommonUtils {
             }
         }
         return sb.toString();
+    }
+    
+    public static String getLastDateStr(String date,String pattern){
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat(pattern);
+            Date date2 = sdf.parse(date);
+            Calendar cal = Calendar.getInstance();
+            cal.setTime(date2);
+            cal.add(Calendar.DAY_OF_MONTH,-1);
+            return sdf.format(cal.getTime());
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return date;
+        }
+    }
+
+    /**
+     * @param trainDate
+     * @return
+     */
+    public static String getLastDateStr(String date) {
+        return getLastDateStr(date, "yyyy-MM-dd");
+    }
+    
+    public static String dateToString(Date date,String pattern){
+        SimpleDateFormat sdf = new SimpleDateFormat(pattern);
+        String format = sdf.format(date);
+        return format;
+    }
+    public static String dateToString(Date date){
+        return dateToString(date, "yyyy-MM-dd");
+    }
+    
+    public static String getCurrentDateStr(){
+        return dateToString(new Date());
+    }
+    
+    public static void main(String[] args) {
+        String lastDateStr = getLastDateStr("2014-08-01");
+        System.out.println(lastDateStr);
     }
 }

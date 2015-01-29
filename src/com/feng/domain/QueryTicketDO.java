@@ -26,7 +26,7 @@ public class QueryTicketDO {
         sb.append("_jc_save_fromStation=" + this.get_jc_save_fromStation());
         sb.append(";_jc_save_toStation=" + this.get_jc_save_toStation());
         sb.append(";_jc_save_fromDate=" + this.trainDate);
-        sb.append(";_jc_save_toDate=" + this.trainDate);
+        sb.append(";_jc_save_toDate=" + CommonUtils.getCurrentDateStr());
         sb.append(";_jc_save_wfdc_flag=" + this.get_jc_save_wfdc_flag());
         return sb.toString();
     }

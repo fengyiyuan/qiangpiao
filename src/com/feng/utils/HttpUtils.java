@@ -33,7 +33,10 @@ public class HttpUtils {
        return doHttp(url, "post", sendHeaders, params);
    }
    public static HttpDO doPost(String url,String params,Map<String,String> headers){
-       return doHttp(url, "post", headers, params);
+       HttpTicketDO httpTicket = SessionUtils.getHttpTicket();
+       Map<String, String> sendHeaders = httpTicket.getSendHeaders();
+       httpTicket.addHeaders(headers);
+       return doHttp(url, "post", sendHeaders, params);
    }
    
    public static HttpDO doGet(String url,String params,String cookies){
@@ -57,7 +60,11 @@ public class HttpUtils {
                url = url.replace(":/", "://");
                if(method == null || "get".equals(method.toLowerCase())){
                    if(params != null && !"".equals(params))
-                       url += "?" + params;
+                       if(url.indexOf("?") == -1){
+                           url += "?" + params;
+                       }else{
+                           url += "&" + params;
+                       }
                }
                URL httpUrl = new URL(url); 
                log.info("==HTTP请求开始:url==="+url);

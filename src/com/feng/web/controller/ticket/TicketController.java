@@ -83,11 +83,9 @@ public class TicketController {
     }
     @ResponseBody
     @RequestMapping("/checkOrderInfo")
-    public String checkOrderInfo(String code) throws Exception{
-        String checkCodeUrl = PropUtils.getProp("ticket.url") + PropUtils.getProp("ticket.url.checkCode");
-        String params = "randCode="+code+"&rand=randp&_json_att=&REPEAT_SUBMIT_TOKEN=" + SessionUtils.getHttpTicket().getGlobalRepeatSubmitToken();
-        HttpDO httpDO = HttpUtils.doPost(checkCodeUrl, params);
-        return httpDO.getResponseStr();
+    public String checkOrderInfo(String code,String leftTicketStr,String trainLocation) throws Exception{
+        String checkOrderInfo = ticketService.checkOrderInfo(code,leftTicketStr,trainLocation);
+        return JSONObject.toJSONString(MvHelper.ajaxSuccess(JSONObject.parse(checkOrderInfo)));
     }
     
 }

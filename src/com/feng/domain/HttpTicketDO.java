@@ -33,6 +33,8 @@ public class HttpTicketDO {
     private String oldPassengerStr;
     private String passengerTicketStr;
     
+    private String orderId;
+    
     private Map<String,String> sendHeaders = new HashMap<String,String>();
     public String getBIGipServerotn() {
         return BIGipServerotn;
@@ -102,6 +104,12 @@ public class HttpTicketDO {
     }
     public void setPassengerTicketStr(String passengerTicketStr) {
         this.passengerTicketStr = passengerTicketStr;
+    }
+    public String getOrderId() {
+        return orderId;
+    }
+    public void setOrderId(String orderId) {
+        this.orderId = orderId;
     }
     public void setQueryTicketDO(QueryTicketDO queryTicketDO) {
         String queryTicketCookies = queryTicketDO.getQueryTicketCookies();
